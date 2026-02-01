@@ -1,0 +1,22 @@
+{
+  "name": "cross-chain-bridge-contracts",
+  "version": "1.0.0",
+  "description": "Cross-chain bridge smart contracts for BSC and Ethereum",
+  "scripts": {
+    "test": "hardhat test",
+    "compile": "hardhat compile",
+    "deploy:bsc": "hardhat run scripts/deploy.js --network bscTestnet",
+    "deploy:eth": "hardhat run scripts/deploy.js --network sepolia",
+    "verify:bsc": "hardhat verify --network bscTestnet",
+    "verify:eth": "hardhat verify --network sepolia"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.0",
+    "hardhat": "^2.19.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.1",
+    "dotenv": "^16.3.1"
+  }
+}
