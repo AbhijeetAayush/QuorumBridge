@@ -1,0 +1,336 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Cross-Chain Bridge - Serverless Multi-Relayer Infrastructure
+
+# Global configuration for all functions
+Globals:
+  Function:
+    Timeout: 300
+    MemorySize: 512
+    Runtime: nodejs20.x
+    Environment:
+      Variables:
+        LOG_LEVEL: info
+        STAGE: !Ref Stage
+        REQUIRED_SIGNATURES: 2
+        TOTAL_RELAYERS: 3
+
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Deployment stage
+
+  BSCRpcUrl:
+    Type: String
+    Description: BSC Sepolia RPC URL
+    NoEcho: true
+
+  EthereumRpcUrl:
+    Type: String
+    Description: Ethereum Sepolia RPC URL
+    NoEcho: true
+
+  BSCTokenAddress:
+    Type: String
+    Description: BSC Token Contract Address
+
+  BSCBridgeAddress:
+    Type: String
+    Description: BSC Bridge Contract Address
+
+  EthWrappedTokenAddress:
+    Type: String
+    Description: Ethereum Wrapped Token Address
+
+  EthBridgeAddress:
+    Type: String
+    Description: Ethereum Bridge Contract Address
+
+Resources:
+  # ========================================
+  # DynamoDB Single Table
+  # ========================================
+  BridgeTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${Stage}-BridgeTable
+      BillingMode: PAY_PER_REQUEST
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
+          AttributeType: S
+        - AttributeName: GSI2PK
+          AttributeType: S
+        - AttributeName: GSI2SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: GSI2
+          KeySchema:
+            - AttributeName: GSI2PK
+              KeyType: HASH
+            - AttributeName: GSI2SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Project
+          Value: CrossChainBridge
+        - Key: Stage
+          Value: !Ref Stage
+
+  # ========================================
+  # Lambda Functions
+  # ========================================
+  
+  # EventPoller Lambda - Polls blockchain events
+  EventPollerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${Stage}-EventPoller
+      CodeUri: src/
+      Handler: functions/eventPoller/index.handler
+      Description: Polls BSC and Ethereum for bridge events
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref BridgeTable
+          BSC_SEPOLIA_RPC_URL: !Ref BSCRpcUrl
+          ETHEREUM_SEPOLIA_RPC_URL: !Ref EthereumRpcUrl
+          BSC_TOKEN_ADDRESS: !Ref BSCTokenAddress
+          BSC_BRIDGE_ADDRESS: !Ref BSCBridgeAddress
+          ETH_WRAPPED_TOKEN_ADDRESS: !Ref EthWrappedTokenAddress
+          ETH_BRIDGE_ADDRESS: !Ref EthBridgeAddress
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BridgeTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource:
+                - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:Relayer*
+      Events:
+        # Relayer 1 - triggered every 30 seconds
+        Relayer1Schedule:
+          Type: Schedule
+          Properties:
+            Schedule: rate(30 seconds)
+            Input: '{"relayerId": "1"}'
+        # Relayer 2 - triggered every 30 seconds
+        Relayer2Schedule:
+          Type: Schedule
+          Properties:
+            Schedule: rate(30 seconds)
+            Input: '{"relayerId": "2"}'
+        # Relayer 3 - triggered every 30 seconds
+        Relayer3Schedule:
+          Type: Schedule
+          Properties:
+            Schedule: rate(30 seconds)
+            Input: '{"relayerId": "3"}'
+
+  # Validator Lambda - Validates consensus
+  ValidatorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${Stage}-Validator
+      CodeUri: src/
+      Handler: functions/validator/index.handler
+      Description: Validates multi-relayer consensus
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref BridgeTable
+          EXECUTOR_LAMBDA_NAME: !Ref ExecutorFunction
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BridgeTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource: !GetAtt ExecutorFunction.Arn
+      Events:
+        # Triggered by DynamoDB Streams
+        DynamoDBStream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt BridgeTable.StreamArn
+            StartingPosition: LATEST
+            BatchSize: 10
+            MaximumBatchingWindowInSeconds: 5
+            FilterCriteria:
+              Filters:
+                - Pattern: '{"eventName": ["INSERT"], "dynamodb": {"NewImage": {"SK": {"S": [{"prefix": "SIGNATURE#"}]}}}}'
+
+  # Executor Lambda - Executes cross-chain transactions
+  ExecutorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${Stage}-Executor
+      CodeUri: src/
+      Handler: functions/executor/index.handler
+      Description: Executes mint/unlock operations
+      Timeout: 600
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref BridgeTable
+          BSC_SEPOLIA_RPC_URL: !Ref BSCRpcUrl
+          ETHEREUM_SEPOLIA_RPC_URL: !Ref EthereumRpcUrl
+          BSC_TOKEN_ADDRESS: !Ref BSCTokenAddress
+          BSC_BRIDGE_ADDRESS: !Ref BSCBridgeAddress
+          ETH_WRAPPED_TOKEN_ADDRESS: !Ref EthWrappedTokenAddress
+          ETH_BRIDGE_ADDRESS: !Ref EthBridgeAddress
+          EXECUTOR_RELAYER_ID: "1"
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BridgeTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource:
+                - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:Relayer*
+
+  # API Lambda - REST API endpoints
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${Stage}-BridgeAPI
+      CodeUri: src/
+      Handler: functions/api/index.handler
+      Description: Provides status and health endpoints
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref BridgeTable
+          BSC_SEPOLIA_RPC_URL: !Ref BSCRpcUrl
+          ETHEREUM_SEPOLIA_RPC_URL: !Ref EthereumRpcUrl
+          VERSION: "1.0.0"
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref BridgeTable
+      Events:
+        # Health check endpoint
+        HealthEndpoint:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BridgeApi
+            Path: /health
+            Method: GET
+        # System info endpoint
+        SystemInfoEndpoint:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BridgeApi
+            Path: /system-info
+            Method: GET
+        # Status endpoint
+        StatusEndpoint:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BridgeApi
+            Path: /status
+            Method: GET
+        # Stats endpoint
+        StatsEndpoint:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BridgeApi
+            Path: /stats
+            Method: GET
+
+  # ========================================
+  # API Gateway
+  # ========================================
+  BridgeApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub ${Stage}-BridgeAPI
+      StageName: !Ref Stage
+      Cors:
+        AllowMethods: "'GET,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
+      Description: Cross-Chain Bridge API
+
+  # ========================================
+  # CloudWatch Log Groups
+  # ========================================
+  EventPollerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Stage}-EventPoller
+      RetentionInDays: 7
+
+  ValidatorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Stage}-Validator
+      RetentionInDays: 7
+
+  ExecutorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Stage}-Executor
+      RetentionInDays: 7
+
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Stage}-BridgeAPI
+      RetentionInDays: 7
+
+# ========================================
+# Outputs
+# ========================================
+Outputs:
+  BridgeTableName:
+    Description: DynamoDB Single Table Name
+    Value: !Ref BridgeTable
+    Export:
+      Name: !Sub ${Stage}-BridgeTableName
+
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub https://${BridgeApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}
+    Export:
+      Name: !Sub ${Stage}-ApiEndpoint
+
+  EventPollerFunctionArn:
+    Description: EventPoller Lambda ARN
+    Value: !GetAtt EventPollerFunction.Arn
+
+  ValidatorFunctionArn:
+    Description: Validator Lambda ARN
+    Value: !GetAtt ValidatorFunction.Arn
+
+  ExecutorFunctionArn:
+    Description: Executor Lambda ARN
+    Value: !GetAtt ExecutorFunction.Arn
+
+  ApiFunctionArn:
+    Description: API Lambda ARN
+    Value: !GetAtt ApiFunction.Arn
