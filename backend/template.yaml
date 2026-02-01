@@ -27,7 +27,7 @@ Parameters:
 
   BSCRpcUrl:
     Type: String
-    Description: BSC Sepolia RPC URL
+    Description: BSC Testnet RPC URL
     NoEcho: true
 
   EthereumRpcUrl:
@@ -50,6 +50,21 @@ Parameters:
   EthBridgeAddress:
     Type: String
     Description: Ethereum Bridge Contract Address
+
+  Relayer1PrivateKey:
+    Type: String
+    Description: Private key for Relayer 1
+    NoEcho: true
+
+  Relayer2PrivateKey:
+    Type: String
+    Description: Private key for Relayer 2
+    NoEcho: true
+
+  Relayer3PrivateKey:
+    Type: String
+    Description: Private key for Relayer 3
+    NoEcho: true
 
 Resources:
   # ========================================
@@ -124,15 +139,12 @@ Resources:
           BSC_BRIDGE_ADDRESS: !Ref BSCBridgeAddress
           ETH_WRAPPED_TOKEN_ADDRESS: !Ref EthWrappedTokenAddress
           ETH_BRIDGE_ADDRESS: !Ref EthBridgeAddress
+          RELAYER_1_PRIVATE_KEY: !Ref Relayer1PrivateKey
+          RELAYER_2_PRIVATE_KEY: !Ref Relayer2PrivateKey
+          RELAYER_3_PRIVATE_KEY: !Ref Relayer3PrivateKey
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref BridgeTable
-        - Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource:
-                - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:Relayer*
       Events:
         # Relayer 1 - triggered every 30 seconds
         Relayer1Schedule:
@@ -205,15 +217,12 @@ Resources:
           ETH_WRAPPED_TOKEN_ADDRESS: !Ref EthWrappedTokenAddress
           ETH_BRIDGE_ADDRESS: !Ref EthBridgeAddress
           EXECUTOR_RELAYER_ID: "1"
+          RELAYER_1_PRIVATE_KEY: !Ref Relayer1PrivateKey
+          RELAYER_2_PRIVATE_KEY: !Ref Relayer2PrivateKey
+          RELAYER_3_PRIVATE_KEY: !Ref Relayer3PrivateKey
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref BridgeTable
-        - Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource:
-                - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:Relayer*
 
   # API Lambda - REST API endpoints
   ApiFunction:

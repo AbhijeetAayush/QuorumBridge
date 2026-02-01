@@ -9,7 +9,6 @@
  */
 
 const { ethers } = require('ethers');
-const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client-secrets-manager');
 const logger = require('../utils/logger');
 const { ValidationError } = require('../utils/errors');
 
@@ -19,44 +18,31 @@ class SigningService {
       return SigningService.instance;
     }
 
-    this.secretsClient = new SecretsManagerClient({
-      region: process.env.AWS_REGION || 'us-east-1'
-    });
-
     this.wallets = {};
     SigningService.instance = this;
   }
 
   /**
-   * Get relayer private key from AWS Secrets Manager
-   * Implements secure key retrieval
+   * Get relayer private key from environment variables
+   * Private keys are provided during SAM deployment
    */
   async getRelayerPrivateKey(relayerId) {
     try {
-      const secretName = `Relayer${relayerId}PrivateKey`;
-      
-      const command = new GetSecretValueCommand({
-        SecretId: secretName
-      });
-
-      const response = await this.secretsClient.send(command);
-      
-      if (!response.SecretString) {
-        throw new Error('Secret value is empty');
-      }
-
-      const secret = JSON.parse(response.SecretString);
-      return secret.privateKey || secret.PrivateKey;
-    } catch (error) {
-      logger.error('Failed to retrieve private key from Secrets Manager', error, { relayerId });
-      
-      // Fallback to environment variable for local development
       const envKey = process.env[`RELAYER_${relayerId}_PRIVATE_KEY`];
-      if (envKey) {
-        logger.warn('Using private key from environment variable', { relayerId });
-        return envKey;
+      
+      if (!envKey) {
+        throw new ValidationError('Relayer private key not found in environment', { relayerId });
       }
 
+      // Validate private key format
+      if (!envKey.match(/^(0x)?[0-9a-fA-F]{64}$/)) {
+        throw new ValidationError('Invalid private key format', { relayerId });
+      }
+
+      logger.info('Retrieved relayer private key from environment', { relayerId });
+      return envKey;
+    } catch (error) {
+      logger.error('Failed to retrieve private key', error, { relayerId });
       throw new ValidationError('Failed to retrieve relayer private key', { relayerId });
     }
   }
