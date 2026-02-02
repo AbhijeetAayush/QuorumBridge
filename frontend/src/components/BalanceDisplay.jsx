@@ -12,7 +12,7 @@ import { useWeb3 } from '../hooks/useWeb3.jsx';
 import { useBridgeContract } from '../hooks/useBridgeContract';
 
 export function BalanceDisplay() {
-  const { isConnected, account, chainId, signer } = useWeb3();
+  const { isConnected, account, chainId, signer, provider } = useWeb3();
   const { getBalance } = useBridgeContract();
   
   const [ethereumBalance, setEthereumBalance] = useState('0');
@@ -30,24 +30,36 @@ export function BalanceDisplay() {
     setLoading(true);
     try {
       console.log('Fetching balances for account:', account);
-      const [ethereum, arbitrum] = await Promise.allSettled([
-        getBalance('ETHEREUM'),
-        getBalance('ARBITRUM')
-      ]);
+      const requests = [];
+      if (chainId === 11155111) {
+        requests.push(getBalance('ETHEREUM', provider));
+        requests.push(Promise.resolve(null));
+      } else if (chainId === 421614) {
+        requests.push(Promise.resolve(null));
+        requests.push(getBalance('ARBITRUM', provider));
+      } else {
+        requests.push(Promise.resolve(null), Promise.resolve(null));
+      }
 
-      if (ethereum.status === 'fulfilled') {
+      const [ethereum, arbitrum] = await Promise.allSettled(requests);
+
+      if (ethereum.status === 'fulfilled' && ethereum.value !== null) {
         setEthereumBalance(ethereum.value);
         console.log('Ethereum balance:', ethereum.value);
       } else {
-        console.error('Ethereum balance error:', ethereum.reason);
+        if (ethereum.status === 'rejected') {
+          console.error('Ethereum balance error:', ethereum.reason);
+        }
         setEthereumBalance('0');
       }
 
-      if (arbitrum.status === 'fulfilled') {
+      if (arbitrum.status === 'fulfilled' && arbitrum.value !== null) {
         setArbitrumBalance(arbitrum.value);
         console.log('Arbitrum balance:', arbitrum.value);
       } else {
-        console.error('Arbitrum balance error:', arbitrum.reason);
+        if (arbitrum.status === 'rejected') {
+          console.error('Arbitrum balance error:', arbitrum.reason);
+        }
         setArbitrumBalance('0');
       }
     } catch (error) {
@@ -108,32 +120,32 @@ export function BalanceDisplay() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Ethereum Sepolia Balance */}
+        {/* Ethereum Sepolia Balance (wrapped) */}
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-medium text-blue-800">Ethereum Sepolia</p>
             <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded">
-              Original
+              Wrapped
             </span>
           </div>
           <p className="text-2xl font-bold text-blue-900">
-            {parseFloat(ethereumBalance).toFixed(4)} CCBT
+            {parseFloat(ethereumBalance).toFixed(4)} wCCBT
           </p>
           {chainId === 11155111 && (
             <p className="text-xs text-blue-700 mt-1">Current Chain</p>
           )}
         </div>
 
-        {/* Arbitrum Sepolia Balance */}
+        {/* Arbitrum Sepolia Balance (original) */}
         <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-medium text-purple-800">Arbitrum Sepolia</p>
             <span className="text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded">
-              Wrapped
+              Original
             </span>
           </div>
           <p className="text-2xl font-bold text-purple-900">
-            {parseFloat(arbitrumBalance).toFixed(4)} wCCBT
+            {parseFloat(arbitrumBalance).toFixed(4)} CCBT
           </p>
           {chainId === 421614 && (
             <p className="text-xs text-purple-700 mt-1">Current Chain</p>

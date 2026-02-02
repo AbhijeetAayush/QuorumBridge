@@ -17,13 +17,13 @@ export function BridgeForm({ onBridgeSuccess }) {
   const { lockTokens, burnTokens, isLoading } = useBridgeContract();
   
   const [amount, setAmount] = useState('');
-  const [direction, setDirection] = useState('BSC_TO_ETH'); // BSC_TO_ETH or ETH_TO_BSC
+  const [direction, setDirection] = useState('ARB_TO_ETH'); // ARB_TO_ETH or ETH_TO_ARB
 
   const handleDirectionChange = async (newDirection) => {
     setDirection(newDirection);
     
     // Auto-switch chain
-    const targetChain = newDirection === 'BSC_TO_ETH' ? 'BSC_TESTNET' : 'ETHEREUM_SEPOLIA';
+    const targetChain = newDirection === 'ARB_TO_ETH' ? 'ARBITRUM_SEPOLIA' : 'ETHEREUM_SEPOLIA';
     try {
       await switchChain(targetChain);
     } catch (error) {
@@ -43,13 +43,13 @@ export function BridgeForm({ onBridgeSuccess }) {
       let result;
       const loadingToast = toast.loading('Processing bridge transaction...');
 
-      if (direction === 'BSC_TO_ETH') {
-        if (!isOnChain('BSC_TESTNET')) {
-          toast.error('Please switch to BSC Testnet', { id: loadingToast });
+      if (direction === 'ARB_TO_ETH') {
+        if (!isOnChain('ARBITRUM_SEPOLIA')) {
+          toast.error('Please switch to Arbitrum Sepolia', { id: loadingToast });
           return;
         }
         result = await lockTokens(amount);
-        toast.success(`Tokens locked on BSC! Transaction: ${result.txHash.substring(0, 10)}...`, { 
+        toast.success(`Tokens locked on Arbitrum! Transaction: ${result.txHash.substring(0, 10)}...`, { 
           id: loadingToast 
         });
       } else {
@@ -58,7 +58,7 @@ export function BridgeForm({ onBridgeSuccess }) {
           return;
         }
         result = await burnTokens(amount);
-        toast.success(`Tokens burned on Ethereum! Transaction: ${result.txHash.substring(0, 10)}...`, { 
+        toast.success(`Tokens burned on Sepolia! Transaction: ${result.txHash.substring(0, 10)}...`, { 
           id: loadingToast 
         });
       }
@@ -77,10 +77,10 @@ export function BridgeForm({ onBridgeSuccess }) {
     }
   };
 
-  const getSourceChain = () => direction === 'BSC_TO_ETH' ? 'BSC Testnet' : 'Ethereum Sepolia';
-  const getDestChain = () => direction === 'BSC_TO_ETH' ? 'Ethereum Sepolia' : 'BSC Testnet';
+  const getSourceChain = () => direction === 'ARB_TO_ETH' ? 'Arbitrum Sepolia' : 'Ethereum Sepolia';
+  const getDestChain = () => direction === 'ARB_TO_ETH' ? 'Ethereum Sepolia' : 'Arbitrum Sepolia';
   const isCorrectChain = () => {
-    if (direction === 'BSC_TO_ETH') return isOnChain('BSC_TESTNET');
+    if (direction === 'ARB_TO_ETH') return isOnChain('ARBITRUM_SEPOLIA');
     return isOnChain('ETHEREUM_SEPOLIA');
   };
 
@@ -104,26 +104,26 @@ export function BridgeForm({ onBridgeSuccess }) {
         </label>
         <div className="grid grid-cols-2 gap-4">
           <button
-            onClick={() => handleDirectionChange('BSC_TO_ETH')}
+            onClick={() => handleDirectionChange('ARB_TO_ETH')}
             className={`p-4 border-2 rounded-lg font-medium transition ${
-              direction === 'BSC_TO_ETH'
+              direction === 'ARB_TO_ETH'
                 ? 'border-blue-600 bg-blue-50 text-blue-900'
                 : 'border-gray-200 text-gray-700 hover:border-gray-300'
             }`}
           >
-            <div className="text-sm mb-1">BSC → Ethereum</div>
+            <div className="text-sm mb-1">Arbitrum → Ethereum</div>
             <div className="text-xs text-gray-500">Lock & Mint</div>
           </button>
           
           <button
-            onClick={() => handleDirectionChange('ETH_TO_BSC')}
+            onClick={() => handleDirectionChange('ETH_TO_ARB')}
             className={`p-4 border-2 rounded-lg font-medium transition ${
-              direction === 'ETH_TO_BSC'
+              direction === 'ETH_TO_ARB'
                 ? 'border-blue-600 bg-blue-50 text-blue-900'
                 : 'border-gray-200 text-gray-700 hover:border-gray-300'
             }`}
           >
-            <div className="text-sm mb-1">Ethereum → BSC</div>
+            <div className="text-sm mb-1">Ethereum → Arbitrum</div>
             <div className="text-xs text-gray-500">Burn & Unlock</div>
           </button>
         </div>
