@@ -146,23 +146,23 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref BridgeTable
       Events:
-        # Relayer 1 - triggered every 30 seconds
+        # Relayer 1 - triggered every minute
         Relayer1Schedule:
           Type: Schedule
           Properties:
-            Schedule: rate(30 seconds)
+            Schedule: "cron(* * * * ? *)"
             Input: '{"relayerId": "1"}'
-        # Relayer 2 - triggered every 30 seconds
+        # Relayer 2 - triggered every minute
         Relayer2Schedule:
           Type: Schedule
           Properties:
-            Schedule: rate(30 seconds)
+            Schedule: "cron(* * * * ? *)"
             Input: '{"relayerId": "2"}'
-        # Relayer 3 - triggered every 30 seconds
+        # Relayer 3 - triggered every minute
         Relayer3Schedule:
           Type: Schedule
           Properties:
-            Schedule: rate(30 seconds)
+            Schedule: "cron(* * * * ? *)"
             Input: '{"relayerId": "3"}'
 
   # Validator Lambda - Validates consensus
