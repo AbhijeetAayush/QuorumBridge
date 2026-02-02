@@ -9,13 +9,24 @@
 
 import React, { useState, useEffect } from 'react';
 
-const API_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:3001';
+const API_URL =
+  import.meta.env.VITE_API_GATEWAY_URL ||
+  import.meta.env.VITE_API_ENDPOINT ||
+  'http://localhost:3001';
+const EXPLORER_BY_CHAIN = {
+  ARBITRUM: 'https://sepolia.arbiscan.io',
+  ARBITRUM_SEPOLIA: 'https://sepolia.arbiscan.io',
+  ETHEREUM: 'https://sepolia.etherscan.io',
+  ETHEREUM_SEPOLIA: 'https://sepolia.etherscan.io'
+};
 
 export function TransactionStatus({ eventId: initialEventId }) {
   const [eventId, setEventId] = useState(initialEventId || '');
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [hasLoadedStoredId, setHasLoadedStoredId] = useState(false);
+  const [isAutoLoading, setIsAutoLoading] = useState(false);
 
   const fetchStatus = async (id) => {
     if (!id) return;
@@ -29,32 +40,113 @@ export function TransactionStatus({ eventId: initialEventId }) {
       
       if (response.ok) {
         setStatus(data);
+        return true;
       } else {
         setError(data.error || 'Failed to fetch status');
+        return false;
       }
     } catch (err) {
       setError('Failed to connect to API');
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchLatestEventId = async () => {
+    const response = await fetch(`${API_URL}/status?chain=ARBITRUM&status=PENDING_MINT&limit=1`);
+    const data = await response.json();
+    return data?.events?.[0]?.eventId || '';
+  };
+
   useEffect(() => {
-    if (initialEventId) {
+    if (hasLoadedStoredId || initialEventId) {
+      return;
+    }
+
+    const loadFromStorageOrLatest = async () => {
+      const storedEventId = window.localStorage.getItem('latestEventId');
+      setIsAutoLoading(true);
+      try {
+        if (storedEventId) {
+          setEventId(storedEventId);
+          const ok = await fetchStatus(storedEventId);
+          if (ok) {
+            setHasLoadedStoredId(true);
+            return;
+          }
+        }
+
+        const latest = await fetchLatestEventId();
+        if (latest) {
+          setEventId(latest);
+          window.localStorage.setItem('latestEventId', latest);
+          await fetchStatus(latest);
+        }
+      } catch {
+        // Ignore auto-load failures; user can still manually enter
+      } finally {
+        setIsAutoLoading(false);
+        setHasLoadedStoredId(true);
+      }
+    };
+
+    loadFromStorageOrLatest();
+  }, [hasLoadedStoredId, initialEventId]);
+
+  useEffect(() => {
+    if (!initialEventId) {
+      return;
+    }
+
+    let interval;
+    let cancelled = false;
+
+    const loadInitial = async () => {
       setEventId(initialEventId);
-      fetchStatus(initialEventId);
-      
-      // Poll for status updates every 5 seconds
-      const interval = setInterval(() => {
+      window.localStorage.setItem('latestEventId', initialEventId);
+      const ok = await fetchStatus(initialEventId);
+
+      if (!ok) {
+        window.localStorage.removeItem('latestEventId');
+        if (!cancelled) {
+          const latest = await fetchLatestEventId();
+          if (latest && latest !== initialEventId) {
+            setEventId(latest);
+            window.localStorage.setItem('latestEventId', latest);
+            const latestOk = await fetchStatus(latest);
+            if (latestOk) {
+              interval = setInterval(() => {
+                fetchStatus(latest);
+              }, 5000);
+            }
+          } else {
+            setStatus(null);
+          }
+        }
+        return;
+      }
+
+      interval = setInterval(() => {
         fetchStatus(initialEventId);
       }, 5000);
-      
-      return () => clearInterval(interval);
-    }
+    };
+
+    loadInitial();
+
+    return () => {
+      cancelled = true;
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [initialEventId]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (eventId) {
+      window.localStorage.setItem('latestEventId', eventId);
+    }
     fetchStatus(eventId);
   };
 
@@ -85,10 +177,10 @@ export function TransactionStatus({ eventId: initialEventId }) {
           />
           <button
             type="submit"
-            disabled={loading || !eventId}
+            disabled={loading || isAutoLoading || !eventId}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition disabled:opacity-50"
           >
-            {loading ? 'Loading...' : 'Check'}
+            {(loading || isAutoLoading) ? 'Loading...' : 'Check'}
           </button>
         </div>
       </form>
@@ -126,7 +218,7 @@ export function TransactionStatus({ eventId: initialEventId }) {
               <div className="flex justify-between">
                 <span className="text-gray-600">Transaction:</span>
                 <a 
-                  href={`${status.event.chain === 'BSC' ? 'https://testnet.bscscan.com' : 'https://sepolia.etherscan.io'}/tx/${status.event.txHash}`}
+                  href={`${EXPLORER_BY_CHAIN[status.event.chain] || 'https://sepolia.etherscan.io'}/tx/${status.event.txHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:text-blue-700 font-mono text-xs"

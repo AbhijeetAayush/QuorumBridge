@@ -8,7 +8,7 @@
  * - Dependency Inversion: Uses composition of components
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { WalletConnect } from './components/WalletConnect';
 import { BalanceDisplay } from './components/BalanceDisplay';
@@ -17,13 +17,21 @@ import { TransactionStatus } from './components/TransactionStatus';
 import { Web3Provider } from './hooks/useWeb3.jsx';
 
 function App() {
-  const [latestEventId, setLatestEventId] = useState(null);
+  const [latestEventId, setLatestEventId] = useState(() => {
+    return window.localStorage.getItem('latestEventId') || '';
+  });
 
   const handleBridgeSuccess = (result) => {
     if (result.eventId) {
       setLatestEventId(result.eventId);
     }
   };
+
+  useEffect(() => {
+    if (latestEventId) {
+      window.localStorage.setItem('latestEventId', latestEventId);
+    }
+  }, [latestEventId]);
 
   return (
     <Web3Provider>
