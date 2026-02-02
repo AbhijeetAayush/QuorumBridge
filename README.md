@@ -1,6 +1,11 @@
-# Cross-Chain Bridge - BSC ↔ Ethereum
+# Cross-Chain Bridge - Arbitrum Sepolia ↔ Ethereum Sepolia
 
 A production-grade cross-chain bridge implementation with multi-relayer consensus, built following SOLID principles and design patterns.
+
+**Manager Summary (3 lines)**  
+Lock/mint + burn/unlock bridge between Arbitrum Sepolia and Ethereum Sepolia with a React frontend.  
+AWS SAM backend (Lambda + DynamoDB + EventBridge) polls events, gathers 2-of-3 relayer signatures, and executes mint/unlock.  
+Deployed backend API + a public frontend (e.g., Vercel) lets any user bridge and track transactions.
 
 ## 🏗️ Architecture Overview
 
@@ -15,8 +20,8 @@ A production-grade cross-chain bridge implementation with multi-relayer consensu
    ┌───▼────────────────────┐
    │                        │
 ┌──▼────────┐        ┌──────▼───────┐
-│    BSC    │        │  Ethereum    │
-│  Testnet  │        │   Sepolia    │
+│ Arbitrum  │        │  Ethereum    │
+│  Sepolia  │        │   Sepolia    │
 └──────┬────┘        └──────┬───────┘
        │                    │
        └────────┬───────────┘
@@ -72,9 +77,9 @@ A production-grade cross-chain bridge implementation with multi-relayer consensu
 ```
 cross-chain-bridge/
 ├── contracts/                 # Smart Contracts (Hardhat)
-│   ├── BEP20Token.sol        # BSC: Original token (1M supply)
+│   ├── BEP20Token.sol        # Arbitrum: Original token (1M supply)
 │   ├── WrappedToken.sol      # Ethereum: Wrapped token
-│   ├── BSCBridge.sol         # BSC: Lock/Unlock
+│   ├── BSCBridge.sol         # Arbitrum: Lock/Unlock (legacy name)
 │   ├── EthereumBridge.sol    # Ethereum: Mint/Burn
 │   ├── interfaces/           # IBEP20, IWrappedToken
 │   ├── scripts/deploy.js     # Deployment automation
@@ -83,7 +88,7 @@ cross-chain-bridge/
 ├── backend/                   # AWS SAM Backend
 │   ├── src/
 │   │   ├── functions/
-│   │   │   ├── eventPoller/  # Polls BSC/Ethereum events
+│   │   │   ├── eventPoller/  # Polls Arbitrum/Ethereum events
 │   │   │   ├── validator/    # Validates consensus
 │   │   │   ├── executor/     # Executes mint/unlock
 │   │   │   └── api/          # Status/health endpoints
@@ -125,7 +130,7 @@ cp .env.example .env
 # Compile contracts
 npm run compile
 
-# Deploy to BSC Testnet
+# Deploy to Arbitrum Sepolia (legacy script name)
 npm run deploy:bsc
 
 # Deploy to Ethereum Sepolia
@@ -134,24 +139,7 @@ npm run deploy:eth
 # Save contract addresses from output
 ```
 
-### Step 2: Create AWS Secrets
-
-```bash
-# Create secrets for relayer private keys
-aws secretsmanager create-secret \
-    --name Relayer1PrivateKey \
-    --secret-string '{"privateKey":"YOUR_PRIVATE_KEY_1"}'
-
-aws secretsmanager create-secret \
-    --name Relayer2PrivateKey \
-    --secret-string '{"privateKey":"YOUR_PRIVATE_KEY_2"}'
-
-aws secretsmanager create-secret \
-    --name Relayer3PrivateKey \
-    --secret-string '{"privateKey":"YOUR_PRIVATE_KEY_3"}'
-```
-
-### Step 3: Deploy Backend (AWS SAM)
+### Step 2: Deploy Backend (AWS SAM)
 
 ```bash
 cd backend
@@ -167,15 +155,16 @@ sam deploy --guided
 
 # Provide parameters:
 # - Stage: dev
-# - BSCRpcUrl: Your BSC RPC URL
-# - EthereumRpcUrl: Your Ethereum RPC URL
+# - ArbitrumSepoliaRpcUrl: Your Arbitrum RPC URL
+# - EthereumSepoliaRpcUrl: Your Ethereum RPC URL
 # - Contract addresses (from Step 1)
+# - Relayer1/2/3PrivateKey: 3 distinct relayer keys
 
 # Subsequent deployments
 sam deploy
 ```
 
-### Step 4: Deploy Frontend
+### Step 3: Deploy Frontend (Vercel)
 
 ```bash
 cd frontend
@@ -195,9 +184,11 @@ npm run dev
 # Production build
 npm run build
 
-# Deploy to Vercel/Netlify
-# - Connect GitHub repo
-# - Add environment variables
+# Vercel
+vercel
+# Add environment variables in Vercel dashboard
+# Re-deploy for production
+vercel --prod
 # - Deploy
 ```
 
@@ -330,7 +321,7 @@ curl https://your-api-gateway-url.amazonaws.com/dev/health
 
 1. **Event Detection** (Every 30s):
    - EventBridge triggers 3 EventPoller Lambda instances
-   - Each polls BSC/Ethereum for new events
+   - Each polls Arbitrum/Ethereum for new events
    - If event found: Store in DynamoDB with relayer signature
 
 2. **Consensus Validation**:
@@ -340,7 +331,7 @@ curl https://your-api-gateway-url.amazonaws.com/dev/health
 
 3. **Execution**:
    - Executor Lambda receives validated event
-   - Executes Mint (Ethereum) or Unlock (BSC)
+   - Executes Mint (Ethereum) or Unlock (Arbitrum)
    - Updates DynamoDB with execution status
 
 ## 💰 Cost Estimation (AWS)
@@ -351,15 +342,14 @@ curl https://your-api-gateway-url.amazonaws.com/dev/health
 - DynamoDB: ~$3
 - API Gateway: ~$1
 - CloudWatch Logs: ~$2
-- Secrets Manager: ~$1
 
 **Total: ~$12/month** (very low cost due to serverless)
 
 ## 🎯 Demo Walkthrough
 
-1. **Connect MetaMask** to BSC Testnet
+1. **Connect MetaMask** to Arbitrum Sepolia
 2. **Check Balances** on both chains
-3. **Bridge BSC → Ethereum**:
+3. **Bridge Arbitrum → Ethereum**:
    - Enter amount (e.g., 10 tokens)
    - Approve token spending
    - Execute lock transaction
@@ -370,7 +360,7 @@ curl https://your-api-gateway-url.amazonaws.com/dev/health
    - See execution complete (~1-2 minutes)
 5. **Verify**:
    - Check Ethereum balance increased
-   - BSC balance decreased
+   - Arbitrum balance decreased
    - Total supply constant
 
 ## 🛠️ Troubleshooting
@@ -408,18 +398,18 @@ curl https://your-api-gateway-url.amazonaws.com/dev/health
 ## 📝 Environment Variables
 
 ### Contracts
-- `BSC_SEPOLIA_RPC_URL` - BSC RPC endpoint
+- `ARBITRUM_SEPOLIA_RPC_URL` - Arbitrum RPC endpoint
 - `ETHEREUM_SEPOLIA_RPC_URL` - Ethereum RPC endpoint
 - `DEPLOYER_PRIVATE_KEY` - Deployer private key
 
 ### Backend
 - `AWS_REGION` - AWS region (default: us-east-1)
 - `DYNAMODB_TABLE_NAME` - DynamoDB table name
-- Contract addresses (BSC_TOKEN_ADDRESS, etc.)
+- Contract addresses (ARBITRUM_SEPOLIA_BRIDGE_ADDRESS, etc.)
 
 ### Frontend
-- `VITE_API_GATEWAY_URL` - API Gateway URL
-- Contract addresses (VITE_BSC_TOKEN_ADDRESS, etc.)
+- `VITE_API_ENDPOINT` - API Gateway URL
+- Contract addresses (VITE_BSC_TOKEN_ADDRESS, etc. - legacy names for Arbitrum)
 
 ## 📚 Additional Resources
 
