@@ -13,14 +13,14 @@ module.exports = {
     }
   },
   networks: {
-    bscTestnet: {
-      url: process.env.BSC_SEPOLIA_RPC_URL || "https://bsc-testnet.public.blastapi.io",
-      chainId: 97,
+    sepolia: {
+      url: process.env.ETHEREUM_SEPOLIA_RPC_URL || "https://rpc.sepolia.org",
+      chainId: 11155111,
       accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : []
     },
-    sepolia: {
-      url: process.env.ETHEREUM_SEPOLIA_RPC_URL || "",
-      chainId: 11155111,
+    arbitrumSepolia: {
+      url: process.env.ARBITRUM_SEPOLIA_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
+      chainId: 421614,
       accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : []
     },
     hardhat: {
@@ -35,8 +35,8 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
-      bscTestnet: process.env.BSCSCAN_API_KEY || "",
-      sepolia: process.env.ETHERSCAN_API_KEY || ""
+      sepolia: process.env.ETHERSCAN_API_KEY || "",
+      arbitrumSepolia: process.env.ARBISCAN_API_KEY || ""
     }
   }
 };

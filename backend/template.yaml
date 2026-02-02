@@ -25,31 +25,31 @@ Parameters:
       - prod
     Description: Deployment stage
 
-  BSCRpcUrl:
-    Type: String
-    Description: BSC Testnet RPC URL
-    NoEcho: true
-
-  EthereumRpcUrl:
+  EthereumSepoliaRpcUrl:
     Type: String
     Description: Ethereum Sepolia RPC URL
     NoEcho: true
 
-  BSCTokenAddress:
+  ArbitrumSepoliaRpcUrl:
     Type: String
-    Description: BSC Token Contract Address
+    Description: Arbitrum Sepolia RPC URL
+    NoEcho: true
 
-  BSCBridgeAddress:
+  EthereumSepoliaTokenAddress:
     Type: String
-    Description: BSC Bridge Contract Address
+    Description: Ethereum Sepolia Token Contract Address
 
-  EthWrappedTokenAddress:
+  EthereumSepoliaBridgeAddress:
     Type: String
-    Description: Ethereum Wrapped Token Address
+    Description: Ethereum Sepolia Bridge Contract Address
 
-  EthBridgeAddress:
+  ArbitrumSepoliaWrappedTokenAddress:
     Type: String
-    Description: Ethereum Bridge Contract Address
+    Description: Arbitrum Sepolia Wrapped Token Address
+
+  ArbitrumSepoliaBridgeAddress:
+    Type: String
+    Description: Arbitrum Sepolia Bridge Contract Address
 
   Relayer1PrivateKey:
     Type: String
@@ -133,12 +133,12 @@ Resources:
       Environment:
         Variables:
           DYNAMODB_TABLE_NAME: !Ref BridgeTable
-          BSC_SEPOLIA_RPC_URL: !Ref BSCRpcUrl
-          ETHEREUM_SEPOLIA_RPC_URL: !Ref EthereumRpcUrl
-          BSC_TOKEN_ADDRESS: !Ref BSCTokenAddress
-          BSC_BRIDGE_ADDRESS: !Ref BSCBridgeAddress
-          ETH_WRAPPED_TOKEN_ADDRESS: !Ref EthWrappedTokenAddress
-          ETH_BRIDGE_ADDRESS: !Ref EthBridgeAddress
+          ETHEREUM_SEPOLIA_RPC_URL: !Ref EthereumSepoliaRpcUrl
+          ARBITRUM_SEPOLIA_RPC_URL: !Ref ArbitrumSepoliaRpcUrl
+          ETHEREUM_SEPOLIA_TOKEN_ADDRESS: !Ref EthereumSepoliaTokenAddress
+          ETHEREUM_SEPOLIA_BRIDGE_ADDRESS: !Ref EthereumSepoliaBridgeAddress
+          ARBITRUM_SEPOLIA_WRAPPED_TOKEN_ADDRESS: !Ref ArbitrumSepoliaWrappedTokenAddress
+          ARBITRUM_SEPOLIA_BRIDGE_ADDRESS: !Ref ArbitrumSepoliaBridgeAddress
           RELAYER_1_PRIVATE_KEY: !Ref Relayer1PrivateKey
           RELAYER_2_PRIVATE_KEY: !Ref Relayer2PrivateKey
           RELAYER_3_PRIVATE_KEY: !Ref Relayer3PrivateKey
@@ -210,12 +210,12 @@ Resources:
       Environment:
         Variables:
           DYNAMODB_TABLE_NAME: !Ref BridgeTable
-          BSC_SEPOLIA_RPC_URL: !Ref BSCRpcUrl
-          ETHEREUM_SEPOLIA_RPC_URL: !Ref EthereumRpcUrl
-          BSC_TOKEN_ADDRESS: !Ref BSCTokenAddress
-          BSC_BRIDGE_ADDRESS: !Ref BSCBridgeAddress
-          ETH_WRAPPED_TOKEN_ADDRESS: !Ref EthWrappedTokenAddress
-          ETH_BRIDGE_ADDRESS: !Ref EthBridgeAddress
+          ETHEREUM_SEPOLIA_RPC_URL: !Ref EthereumSepoliaRpcUrl
+          ARBITRUM_SEPOLIA_RPC_URL: !Ref ArbitrumSepoliaRpcUrl
+          ETHEREUM_SEPOLIA_TOKEN_ADDRESS: !Ref EthereumSepoliaTokenAddress
+          ETHEREUM_SEPOLIA_BRIDGE_ADDRESS: !Ref EthereumSepoliaBridgeAddress
+          ARBITRUM_SEPOLIA_WRAPPED_TOKEN_ADDRESS: !Ref ArbitrumSepoliaWrappedTokenAddress
+          ARBITRUM_SEPOLIA_BRIDGE_ADDRESS: !Ref ArbitrumSepoliaBridgeAddress
           EXECUTOR_RELAYER_ID: "1"
           RELAYER_1_PRIVATE_KEY: !Ref Relayer1PrivateKey
           RELAYER_2_PRIVATE_KEY: !Ref Relayer2PrivateKey
@@ -235,8 +235,8 @@ Resources:
       Environment:
         Variables:
           DYNAMODB_TABLE_NAME: !Ref BridgeTable
-          BSC_SEPOLIA_RPC_URL: !Ref BSCRpcUrl
-          ETHEREUM_SEPOLIA_RPC_URL: !Ref EthereumRpcUrl
+          ETHEREUM_SEPOLIA_RPC_URL: !Ref EthereumSepoliaRpcUrl
+          ARBITRUM_SEPOLIA_RPC_URL: !Ref ArbitrumSepoliaRpcUrl
           VERSION: "1.0.0"
       Policies:
         - DynamoDBReadPolicy:
