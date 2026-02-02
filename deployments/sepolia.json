@@ -1,0 +1,13 @@
+{
+  "network": "sepolia",
+  "deployer": "0xA2fBc9114217Bc0F36e19B38eB1b6eCE11F3a8E8",
+  "timestamp": "2026-02-02T10:49:01.250Z",
+  "contracts": {
+    "ethereum": {
+      "wrappedToken": "0x0a1b4390B830fB24C2f0316e952653f6440330FA",
+      "bridge": "0x6BE64B6aed916eccBb41731c96Cd79D4eBcE52aF",
+      "minBurnAmount": "1.0",
+      "maxBurnAmount": "100000.0"
+    }
+  }
+}

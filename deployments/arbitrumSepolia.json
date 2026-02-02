@@ -1,0 +1,19 @@
+{
+  "network": "arbitrumSepolia",
+  "deployer": "0xA2fBc9114217Bc0F36e19B38eB1b6eCE11F3a8E8",
+  "timestamp": "2026-02-02T10:53:50.204Z",
+  "contracts": {
+    "bsc": {
+      "token": "0x3389D6Fe0711157f84Ef86651a508919A6DB5F6a",
+      "bridge": "0xbd96F8f926181957FE996d50DE5C78e77642f5F3",
+      "minLockAmount": "1.0",
+      "maxLockAmount": "100000.0"
+    },
+    "ethereum": {
+      "wrappedToken": "0x495eb16A68993994D001D23d835625d6813ea37C",
+      "bridge": "0x8d316323330df08eb800c90F61221154df7d36ae",
+      "minBurnAmount": "1.0",
+      "maxBurnAmount": "100000.0"
+    }
+  }
+}
