@@ -8,7 +8,7 @@
  */
 
 import React, { useState } from 'react';
-import { useWeb3 } from '../hooks/useWeb3';
+import { useWeb3 } from '../hooks/useWeb3.jsx';
 import { useBridgeContract } from '../hooks/useBridgeContract';
 import toast from 'react-hot-toast';
 

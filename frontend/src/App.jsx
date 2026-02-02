@@ -14,6 +14,7 @@ import { WalletConnect } from './components/WalletConnect';
 import { BalanceDisplay } from './components/BalanceDisplay';
 import { BridgeForm } from './components/BridgeForm';
 import { TransactionStatus } from './components/TransactionStatus';
+import { Web3Provider } from './hooks/useWeb3.jsx';
 
 function App() {
   const [latestEventId, setLatestEventId] = useState(null);
@@ -25,26 +26,27 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-      <Toaster 
-        position="top-right"
-        toastOptions={{
-          duration: 5000,
-          style: {
-            background: '#363636',
-            color: '#fff',
-          },
-        }}
-      />
-      
-      <div className="max-w-6xl mx-auto">
+    <Web3Provider>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 5000,
+            style: {
+              background: '#363636',
+              color: '#fff',
+            },
+          }}
+        />
+        
+        <div className="max-w-6xl mx-auto">
         {/* Header */}
         <header className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Cross-Chain Bridge
           </h1>
           <p className="text-gray-600">
-            Bridge tokens between BSC and Ethereum with multi-relayer consensus
+            Bridge tokens between Ethereum Sepolia and Arbitrum Sepolia with multi-relayer consensus
           </p>
         </header>
 
@@ -131,10 +133,11 @@ function App() {
         {/* Footer */}
         <footer className="mt-12 text-center text-gray-600 text-sm">
           <p>Built with SOLID principles, Design Patterns, and DRY architecture</p>
-          <p className="mt-1">BSC Testnet ↔ Ethereum Sepolia</p>
+          <p className="mt-1">Ethereum Sepolia ↔ Arbitrum Sepolia</p>
         </footer>
+        </div>
       </div>
-    </div>
+    </Web3Provider>
   );
 }
 

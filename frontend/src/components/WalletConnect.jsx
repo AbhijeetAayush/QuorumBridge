@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { useWeb3 } from '../hooks/useWeb3';
+import { useWeb3 } from '../hooks/useWeb3.jsx';
 
 export function WalletConnect() {
   const { 

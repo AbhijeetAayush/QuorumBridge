@@ -10,15 +10,15 @@
 
 import { useState, useCallback } from 'react';
 import { ethers } from 'ethers';
-import { useWeb3 } from './useWeb3';
+import { useWeb3 } from './useWeb3.jsx';
 
 // Contract addresses (should come from environment variables)
 const CONTRACTS = {
-  BSC: {
+  ETHEREUM: {
     token: import.meta.env.VITE_BSC_TOKEN_ADDRESS || '',
     bridge: import.meta.env.VITE_BSC_BRIDGE_ADDRESS || ''
   },
-  ETHEREUM: {
+  ARBITRUM: {
     wrappedToken: import.meta.env.VITE_ETH_WRAPPED_TOKEN_ADDRESS || '',
     bridge: import.meta.env.VITE_ETH_BRIDGE_ADDRESS || ''
   }
@@ -54,9 +54,9 @@ export function useBridgeContract() {
     try {
       if (!signer) throw new Error('Wallet not connected');
 
-      const tokenAddress = chain === 'BSC' 
-        ? CONTRACTS.BSC.token 
-        : CONTRACTS.ETHEREUM.wrappedToken;
+      const tokenAddress = chain === 'ETHEREUM' 
+        ? CONTRACTS.ETHEREUM.token 
+        : CONTRACTS.ARBITRUM.wrappedToken;
 
       const tokenContract = new ethers.Contract(tokenAddress, TOKEN_ABI, signer);
       const balance = await tokenContract.balanceOf(account);
@@ -75,13 +75,13 @@ export function useBridgeContract() {
     try {
       if (!signer) throw new Error('Wallet not connected');
 
-      const tokenAddress = chain === 'BSC' 
-        ? CONTRACTS.BSC.token 
-        : CONTRACTS.ETHEREUM.wrappedToken;
+      const tokenAddress = chain === 'ETHEREUM' 
+        ? CONTRACTS.ETHEREUM.token 
+        : CONTRACTS.ARBITRUM.wrappedToken;
       
-      const bridgeAddress = chain === 'BSC'
-        ? CONTRACTS.BSC.bridge
-        : CONTRACTS.ETHEREUM.bridge;
+      const bridgeAddress = chain === 'ETHEREUM'
+        ? CONTRACTS.ETHEREUM.bridge
+        : CONTRACTS.ARBITRUM.bridge;
 
       const tokenContract = new ethers.Contract(tokenAddress, TOKEN_ABI, signer);
       const amountWei = ethers.parseEther(amount.toString());
@@ -104,13 +104,13 @@ export function useBridgeContract() {
     try {
       if (!signer) throw new Error('Wallet not connected');
 
-      const tokenAddress = chain === 'BSC' 
-        ? CONTRACTS.BSC.token 
-        : CONTRACTS.ETHEREUM.wrappedToken;
+      const tokenAddress = chain === 'ETHEREUM' 
+        ? CONTRACTS.ETHEREUM.token 
+        : CONTRACTS.ARBITRUM.wrappedToken;
       
-      const bridgeAddress = chain === 'BSC'
-        ? CONTRACTS.BSC.bridge
-        : CONTRACTS.ETHEREUM.bridge;
+      const bridgeAddress = chain === 'ETHEREUM'
+        ? CONTRACTS.ETHEREUM.bridge
+        : CONTRACTS.ARBITRUM.bridge;
 
       const tokenContract = new ethers.Contract(tokenAddress, TOKEN_ABI, signer);
       const allowance = await tokenContract.allowance(account, bridgeAddress);
@@ -124,7 +124,7 @@ export function useBridgeContract() {
   }, [signer, account]);
 
   /**
-   * Lock tokens on BSC (bridge to Ethereum)
+   * Lock tokens on Ethereum Sepolia (bridge to Arbitrum)
    * Implements Command Pattern
    */
   const lockTokens = useCallback(async (amount) => {
@@ -132,19 +132,19 @@ export function useBridgeContract() {
       setIsLoading(true);
       setError(null);
 
-      if (!isOnChain('BSC_TESTNET')) {
-        throw new Error('Please switch to BSC Testnet');
+      if (!isOnChain('ETHEREUM_SEPOLIA')) {
+        throw new Error('Please switch to Ethereum Sepolia');
       }
 
       // Check and approve if necessary
-      const hasAllowance = await checkAllowance(amount, 'BSC');
+      const hasAllowance = await checkAllowance(amount, 'ETHEREUM');
       if (!hasAllowance) {
-        await approveToken(amount, 'BSC');
+        await approveToken(amount, 'ETHEREUM');
       }
 
       // Lock tokens
       const bridgeContract = new ethers.Contract(
-        CONTRACTS.BSC.bridge,
+        CONTRACTS.ETHEREUM.bridge,
         BSC_BRIDGE_ABI,
         signer
       );
@@ -182,7 +182,7 @@ export function useBridgeContract() {
   }, [signer, isOnChain, checkAllowance, approveToken]);
 
   /**
-   * Burn wrapped tokens on Ethereum (bridge to BSC)
+   * Burn wrapped tokens on Arbitrum Sepolia (bridge to Ethereum)
    * Implements Command Pattern
    */
   const burnTokens = useCallback(async (amount) => {
@@ -190,19 +190,19 @@ export function useBridgeContract() {
       setIsLoading(true);
       setError(null);
 
-      if (!isOnChain('ETHEREUM_SEPOLIA')) {
-        throw new Error('Please switch to Ethereum Sepolia');
+      if (!isOnChain('ARBITRUM_SEPOLIA')) {
+        throw new Error('Please switch to Arbitrum Sepolia');
       }
 
       // Check and approve if necessary
-      const hasAllowance = await checkAllowance(amount, 'ETHEREUM');
+      const hasAllowance = await checkAllowance(amount, 'ARBITRUM');
       if (!hasAllowance) {
-        await approveToken(amount, 'ETHEREUM');
+        await approveToken(amount, 'ARBITRUM');
       }
 
       // Burn tokens
       const bridgeContract = new ethers.Contract(
-        CONTRACTS.ETHEREUM.bridge,
+        CONTRACTS.ARBITRUM.bridge,
         ETH_BRIDGE_ABI,
         signer
       );

@@ -7,44 +7,83 @@
  * - Open/Closed: Can extend with new balance types
  */
 
-import React, { useState, useEffect } from 'react';
-import { useWeb3 } from '../hooks/useWeb3';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useWeb3 } from '../hooks/useWeb3.jsx';
 import { useBridgeContract } from '../hooks/useBridgeContract';
 
 export function BalanceDisplay() {
-  const { isConnected, account, chainId } = useWeb3();
+  const { isConnected, account, chainId, signer } = useWeb3();
   const { getBalance } = useBridgeContract();
   
-  const [bscBalance, setBscBalance] = useState('0');
-  const [ethBalance, setEthBalance] = useState('0');
+  const [ethereumBalance, setEthereumBalance] = useState('0');
+  const [arbitrumBalance, setArbitrumBalance] = useState('0');
   const [loading, setLoading] = useState(false);
+  const intervalRef = useRef(null);
 
-  const fetchBalances = async () => {
-    if (!isConnected || !account) return;
+  const fetchBalances = useCallback(async () => {
+    // Guard against fetching when disconnected
+    if (!isConnected || !account || !signer) {
+      console.log('Not fetching balances - not connected');
+      return;
+    }
     
     setLoading(true);
     try {
-      const [bsc, eth] = await Promise.allSettled([
-        getBalance('BSC'),
-        getBalance('ETHEREUM')
+      console.log('Fetching balances for account:', account);
+      const [ethereum, arbitrum] = await Promise.allSettled([
+        getBalance('ETHEREUM'),
+        getBalance('ARBITRUM')
       ]);
 
-      setBscBalance(bsc.status === 'fulfilled' ? bsc.value : '0');
-      setEthBalance(eth.status === 'fulfilled' ? eth.value : '0');
+      if (ethereum.status === 'fulfilled') {
+        setEthereumBalance(ethereum.value);
+        console.log('Ethereum balance:', ethereum.value);
+      } else {
+        console.error('Ethereum balance error:', ethereum.reason);
+        setEthereumBalance('0');
+      }
+
+      if (arbitrum.status === 'fulfilled') {
+        setArbitrumBalance(arbitrum.value);
+        console.log('Arbitrum balance:', arbitrum.value);
+      } else {
+        console.error('Arbitrum balance error:', arbitrum.reason);
+        setArbitrumBalance('0');
+      }
     } catch (error) {
       console.error('Failed to fetch balances:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [isConnected, account, signer, getBalance]);
 
   useEffect(() => {
-    fetchBalances();
-    
-    // Refresh balances every 10 seconds
-    const interval = setInterval(fetchBalances, 10000);
-    return () => clearInterval(interval);
-  }, [isConnected, account, chainId]);
+    console.log('BalanceDisplay effect - isConnected:', isConnected, 'account:', account);
+
+    if (intervalRef.current) {
+      console.log('Clearing existing interval');
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    if (isConnected && account && signer) {
+      console.log('Starting balance fetch loop');
+      fetchBalances();
+      intervalRef.current = setInterval(fetchBalances, 10000);
+    } else {
+      console.log('Not connected, resetting balances');
+      setEthereumBalance('0');
+      setArbitrumBalance('0');
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        console.log('Cleanup: Clearing balance fetch interval');
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [isConnected, account, signer, fetchBalances]);
 
   if (!isConnected) {
     return (
@@ -69,42 +108,42 @@ export function BalanceDisplay() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* BSC Balance */}
-        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-yellow-800">BSC Testnet</p>
-            <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded">
-              Original
-            </span>
-          </div>
-          <p className="text-2xl font-bold text-yellow-900">
-            {parseFloat(bscBalance).toFixed(4)} CCBT
-          </p>
-          {chainId === 97 && (
-            <p className="text-xs text-yellow-700 mt-1">Current Chain</p>
-          )}
-        </div>
-
-        {/* Ethereum Balance */}
+        {/* Ethereum Sepolia Balance */}
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-medium text-blue-800">Ethereum Sepolia</p>
             <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded">
-              Wrapped
+              Original
             </span>
           </div>
           <p className="text-2xl font-bold text-blue-900">
-            {parseFloat(ethBalance).toFixed(4)} wCCBT
+            {parseFloat(ethereumBalance).toFixed(4)} CCBT
           </p>
           {chainId === 11155111 && (
             <p className="text-xs text-blue-700 mt-1">Current Chain</p>
+          )}
+        </div>
+
+        {/* Arbitrum Sepolia Balance */}
+        <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-purple-800">Arbitrum Sepolia</p>
+            <span className="text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded">
+              Wrapped
+            </span>
+          </div>
+          <p className="text-2xl font-bold text-purple-900">
+            {parseFloat(arbitrumBalance).toFixed(4)} wCCBT
+          </p>
+          {chainId === 421614 && (
+            <p className="text-xs text-purple-700 mt-1">Current Chain</p>
           )}
         </div>
       </div>
 
       <div className="mt-4 p-3 bg-gray-50 rounded-lg">
         <p className="text-xs text-gray-600">
-          Total Supply Constant: {(parseFloat(bscBalance) + parseFloat(ethBalance)).toFixed(4)} tokens
+          Total Supply Constant: {(parseFloat(ethereumBalance) + parseFloat(arbitrumBalance)).toFixed(4)} tokens
         </p>
       </div>
     </div>
