@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./IBEP20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title IWrappedToken
  * @dev Interface for wrapped token with mint/burn capabilities
- * @notice Extends IBEP20 with bridge-specific operations
+ * @notice Extends IERC20 with bridge-specific operations
  * Follows Interface Segregation Principle
  */
-interface IWrappedToken is IBEP20 {
+interface IWrappedToken is IERC20 {
     /**
      * @dev Emitted when tokens are minted by the bridge
      */
