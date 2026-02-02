@@ -33,11 +33,11 @@ class Web3Service {
    */
   initializeProviders() {
     try {
-      // BSC Provider
-      const bscConfig = chainConfig.getBSCConfig();
-      this.providers.bsc = new ethers.JsonRpcProvider(bscConfig.rpcUrl, {
-        chainId: bscConfig.chainId,
-        name: bscConfig.name
+      // Arbitrum Provider
+      const arbitrumConfig = chainConfig.getArbitrumConfig();
+      this.providers.arbitrum = new ethers.JsonRpcProvider(arbitrumConfig.rpcUrl, {
+        chainId: arbitrumConfig.chainId,
+        name: arbitrumConfig.name
       });
 
       // Ethereum Provider
@@ -97,10 +97,10 @@ class Web3Service {
    * DRY principle - centralized config retrieval
    */
   getContractConfig(chain, contractType) {
-    if (chain === 'bsc') {
+    if (chain === 'arbitrum') {
       return contractType === 'token' 
-        ? contractConfig.getBSCTokenConfig()
-        : contractConfig.getBSCBridgeConfig();
+        ? contractConfig.getArbitrumTokenConfig()
+        : contractConfig.getArbitrumBridgeConfig();
     } else if (chain === 'ethereum') {
       return contractType === 'token'
         ? contractConfig.getEthereumWrappedTokenConfig()
@@ -166,9 +166,15 @@ class Web3Service {
   async queryEvents(chain, contractType, eventName, filters = {}, fromBlock, toBlock) {
     try {
       const contract = this.getContract(chain, contractType);
-      const filter = contract.filters[eventName](...Object.values(filters));
-      
-      const events = await contract.queryFilter(filter, fromBlock, toBlock);
+      let events;
+
+      if (contract.filters && typeof contract.filters[eventName] === 'function') {
+        const filter = contract.filters[eventName](...Object.values(filters));
+        events = await contract.queryFilter(filter, fromBlock, toBlock);
+      } else {
+        // Fallback for minimal ABIs without generated filters
+        events = await contract.queryFilter(eventName, fromBlock, toBlock);
+      }
       
       logger.debug('Events queried', { 
         chain, 

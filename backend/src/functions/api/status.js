@@ -109,8 +109,8 @@ async function getRecentEvents(chain, status = 'PENDING_MINT', limit = 20) {
 async function getBridgeStats() {
   try {
     // Get events from both chains
-    const [bscPending, ethPending] = await Promise.all([
-      dynamoService.getEventsByChainAndStatus('BSC', 'PENDING_MINT', 10),
+    const [arbitrumPending, ethPending] = await Promise.all([
+      dynamoService.getEventsByChainAndStatus('ARBITRUM', 'PENDING_MINT', 10),
       dynamoService.getEventsByChainAndStatus('ETHEREUM', 'PENDING_UNLOCK', 10)
     ]);
 
@@ -118,13 +118,13 @@ async function getBridgeStats() {
       statusCode: 200,
       body: {
         timestamp: new Date().toISOString(),
-        bsc: {
-          pendingEvents: bscPending.length
+        arbitrum: {
+          pendingEvents: arbitrumPending.length
         },
         ethereum: {
           pendingEvents: ethPending.length
         },
-        totalPending: bscPending.length + ethPending.length
+        totalPending: arbitrumPending.length + ethPending.length
       }
     };
   } catch (error) {

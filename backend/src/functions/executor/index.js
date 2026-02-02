@@ -76,7 +76,7 @@ exports.handler = async (event) => {
 
     // Update event status
     const newStatus = action === 'MINT' ? 'MINTED' : 'UNLOCKED';
-    const chain = action === 'MINT' ? 'ETHEREUM' : 'BSC';
+    const chain = action === 'MINT' ? 'ETHEREUM' : 'ARBITRUM';
     await dynamoService.updateEventStatus(eventId, newStatus, chain);
 
     logger.info('Execution completed successfully', { 

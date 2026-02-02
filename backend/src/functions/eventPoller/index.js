@@ -13,7 +13,7 @@
  * - Dependency Inversion: Depends on poller abstractions
  */
 
-const bscPoller = require('./bscPoller');
+const arbitrumPoller = require('./bscPoller');
 const ethPoller = require('./ethPoller');
 const signingService = require('../../shared/services/signingService');
 const dynamoService = require('../../shared/services/dynamoService');
@@ -34,19 +34,19 @@ exports.handler = async (event) => {
 
     // Poll both chains
     const results = await Promise.allSettled([
-      pollAndSignEvents(bscPoller, relayerId),
+      pollAndSignEvents(arbitrumPoller, relayerId),
       pollAndSignEvents(ethPoller, relayerId)
     ]);
 
     // Process results
-    const bscResult = results[0];
+    const arbitrumResult = results[0];
     const ethResult = results[1];
 
     const response = {
       statusCode: 200,
       body: {
         relayerId,
-        bsc: bscResult.status === 'fulfilled' ? bscResult.value : { error: bscResult.reason?.message },
+        arbitrum: arbitrumResult.status === 'fulfilled' ? arbitrumResult.value : { error: arbitrumResult.reason?.message },
         ethereum: ethResult.status === 'fulfilled' ? ethResult.value : { error: ethResult.reason?.message },
         duration: Date.now() - startTime
       }

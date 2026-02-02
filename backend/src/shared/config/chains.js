@@ -9,18 +9,18 @@
  */
 
 const CHAINS = {
-  BSC_TESTNET: {
-    chainId: 97,
-    name: 'BSC Testnet',
-    rpcUrl: process.env.BSC_SEPOLIA_RPC_URL || 'https://bsc-testnet.public.blastapi.io',
+  ARBITRUM_SEPOLIA: {
+    chainId: 421614,
+    name: 'Arbitrum Sepolia',
+    rpcUrl: process.env.ARBITRUM_SEPOLIA_RPC_URL || '',
     nativeCurrency: {
-      name: 'BNB',
-      symbol: 'BNB',
+      name: 'ETH',
+      symbol: 'ETH',
       decimals: 18
     },
-    blockTime: 3000, // 3 seconds
+    blockTime: 250, // 0.25 seconds
     confirmations: 3,
-    explorerUrl: 'https://testnet.bscscan.com'
+    explorerUrl: 'https://sepolia.arbiscan.io'
   },
   ETHEREUM_SEPOLIA: {
     chainId: 11155111,
@@ -66,8 +66,8 @@ class ChainConfig {
     return chain;
   }
 
-  getBSCConfig() {
-    return this.chains.BSC_TESTNET;
+  getArbitrumConfig() {
+    return this.chains.ARBITRUM_SEPOLIA;
   }
 
   getEthereumConfig() {

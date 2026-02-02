@@ -46,7 +46,7 @@ exports.handler = async (event) => {
       if (eventId) {
         response = await statusHandler.getEventStatus(eventId);
       } else {
-        const chain = queryParams.chain || 'BSC';
+        const chain = queryParams.chain || 'ARBITRUM';
         const status = queryParams.status || 'PENDING_MINT';
         const limit = parseInt(queryParams.limit) || 20;
         response = await statusHandler.getRecentEvents(chain, status, limit);
@@ -65,7 +65,7 @@ exports.handler = async (event) => {
             'GET /health',
             'GET /system-info',
             'GET /status?eventId={id}',
-            'GET /status?chain={BSC|ETHEREUM}&status={status}&limit={limit}',
+            'GET /status?chain={ARBITRUM|ETHEREUM}&status={status}&limit={limit}',
             'GET /stats'
           ]
         }

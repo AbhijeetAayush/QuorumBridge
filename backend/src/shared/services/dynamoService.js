@@ -25,6 +25,7 @@ const {
   PutCommand,
   GetCommand,
   QueryCommand,
+  ScanCommand,
   UpdateCommand,
   DeleteCommand
 } = require('@aws-sdk/lib-dynamodb');
@@ -174,31 +175,73 @@ class DynamoDBService {
       }));
 
       if (!result.Items || result.Items.length === 0) {
-        return null;
+        // Fallback: find event by eventId if PK format mismatched
+        const fallbackEvent = await this.findEventMetadataByEventId(eventId);
+        if (!fallbackEvent) {
+          return null;
+        }
+        const fallbackResult = await this.docClient.send(new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'PK = :pk',
+          ExpressionAttributeValues: {
+            ':pk': fallbackEvent.PK
+          }
+        }));
+        if (!fallbackResult.Items || fallbackResult.Items.length === 0) {
+          return null;
+        }
+        return this.buildEventDataFromItems(fallbackResult.Items);
       }
 
-      // Parse items by entity type
-      const eventData = {
-        event: null,
-        signatures: [],
-        execution: null
-      };
-
-      result.Items.forEach(item => {
-        if (item.SK === 'METADATA') {
-          eventData.event = item;
-        } else if (item.SK.startsWith('SIGNATURE#')) {
-          eventData.signatures.push(item);
-        } else if (item.SK === 'EXECUTION') {
-          eventData.execution = item;
-        }
-      });
-
+      const eventData = this.buildEventDataFromItems(result.Items);
       logger.debug('Retrieved event data', { eventId, signatureCount: eventData.signatures.length });
       return eventData;
     } catch (error) {
       logger.error('Failed to get event data', error, { eventId });
       throw new DynamoDBError('Failed to get event data', { originalError: error.message });
+    }
+  }
+
+  buildEventDataFromItems(items) {
+    const eventData = {
+      event: null,
+      signatures: [],
+      execution: null
+    };
+
+    items.forEach(item => {
+      if (item.SK === 'METADATA') {
+        eventData.event = item;
+      } else if (item.SK.startsWith('SIGNATURE#')) {
+        eventData.signatures.push(item);
+      } else if (item.SK === 'EXECUTION') {
+        eventData.execution = item;
+      }
+    });
+
+    return eventData;
+  }
+
+  async findEventMetadataByEventId(eventId) {
+    try {
+      const result = await this.docClient.send(new ScanCommand({
+        TableName: this.tableName,
+        FilterExpression: 'eventId = :eventId AND SK = :sk',
+        ExpressionAttributeValues: {
+          ':eventId': eventId,
+          ':sk': 'METADATA'
+        },
+        Limit: 1
+      }));
+
+      if (!result.Items || result.Items.length === 0) {
+        return null;
+      }
+
+      return result.Items[0];
+    } catch (error) {
+      logger.error('Failed to scan event metadata', error, { eventId });
+      return null;
     }
   }
 

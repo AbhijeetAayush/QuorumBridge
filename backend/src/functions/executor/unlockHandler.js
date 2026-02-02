@@ -1,9 +1,9 @@
 /**
- * Unlock Handler - Handles unlocking tokens on BSC
+ * Unlock Handler - Handles unlocking tokens on Arbitrum
  * Implements Command Pattern for execution
  * 
  * SOLID Principles:
- * - Single Responsibility: Only handles BSC unlocking
+ * - Single Responsibility: Only handles Arbitrum unlocking
  * - Open/Closed: Can extend without modification
  * - Dependency Inversion: Depends on service abstractions
  */
@@ -15,12 +15,12 @@ const { Web3Error } = require('../../shared/utils/errors');
 
 class UnlockHandler {
   constructor() {
-    this.chain = 'bsc';
+    this.chain = 'arbitrum';
     this.contractType = 'bridge';
   }
 
   /**
-   * Execute unlock operation on BSC
+   * Execute unlock operation on Arbitrum
    * Implements retry logic with exponential backoff
    */
   async executeUnlock(eventData) {
@@ -48,7 +48,7 @@ class UnlockHandler {
       const eventId = eventData.eventId;
 
       // Execute unlock transaction
-      logger.info('Calling unlockTokens on BSC bridge', { to, amount, eventId });
+      logger.info('Calling unlockTokens on Arbitrum bridge', { to, amount, eventId });
       
       const tx = await web3Service.sendTransaction(
         bridge,

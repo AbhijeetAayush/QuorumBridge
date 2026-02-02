@@ -1,9 +1,9 @@
 /**
- * BSC Event Poller - Polls BSC chain for TokensLocked events
+ * Arbitrum Event Poller - Polls Arbitrum chain for TokensLocked events
  * Implements Observer Pattern for event detection
  * 
  * SOLID Principles:
- * - Single Responsibility: Only polls BSC events
+ * - Single Responsibility: Only polls Arbitrum events
  * - Open/Closed: Can extend for new event types
  * - Dependency Inversion: Depends on service abstractions
  */
@@ -13,9 +13,9 @@ const dynamoService = require('../../shared/services/dynamoService');
 const logger = require('../../shared/utils/logger');
 const { EventProcessingError } = require('../../shared/utils/errors');
 
-class BSCPoller {
+class ArbitrumPoller {
   constructor() {
-    this.chain = 'bsc';
+    this.chain = 'arbitrum';
     this.contractType = 'bridge';
     this.eventName = 'TokensLocked';
     this.lastProcessedBlock = null;
@@ -27,7 +27,7 @@ class BSCPoller {
    */
   async poll(fromBlock, toBlock) {
     try {
-      logger.info('Starting BSC event poll', { fromBlock, toBlock });
+      logger.info('Starting Arbitrum event poll', { fromBlock, toBlock });
 
       const events = await web3Service.queryEvents(
         this.chain,
@@ -62,8 +62,8 @@ class BSCPoller {
         events: processedEvents
       };
     } catch (error) {
-      logger.error('BSC polling failed', error, { fromBlock, toBlock });
-      throw new EventProcessingError('BSC polling failed', { 
+      logger.error('Arbitrum polling failed', error, { fromBlock, toBlock });
+      throw new EventProcessingError('Arbitrum polling failed', { 
         fromBlock, 
         toBlock,
         originalError: error.message 
@@ -83,7 +83,7 @@ class BSCPoller {
       const eventData = {
         eventId: parsedEvent.args.eventId,
         txHash: parsedEvent.transactionHash,
-        chain: 'BSC',
+        chain: 'ARBITRUM',
         amount: parsedEvent.args.amount.toString(),
         fromAddress: parsedEvent.args.from,
         toAddress: parsedEvent.args.from, // Same address on destination
@@ -103,7 +103,7 @@ class BSCPoller {
       // Create event in DynamoDB
       await dynamoService.createEvent(eventData);
 
-      logger.info('BSC event processed and stored', { 
+      logger.info('Arbitrum event processed and stored', { 
         eventId: eventData.eventId,
         txHash: eventData.txHash,
         amount: eventData.amount
@@ -111,8 +111,8 @@ class BSCPoller {
 
       return eventData;
     } catch (error) {
-      logger.error('Failed to process BSC event', error);
-      throw new EventProcessingError('Failed to process BSC event', { 
+      logger.error('Failed to process Arbitrum event', error);
+      throw new EventProcessingError('Failed to process Arbitrum event', { 
         transactionHash: event.transactionHash 
       });
     }
@@ -151,4 +151,4 @@ class BSCPoller {
   }
 }
 
-module.exports = new BSCPoller();
+module.exports = new ArbitrumPoller();

@@ -7,6 +7,7 @@
  * - Open/Closed: Can extend with new health checks
  */
 
+const { ScanCommand } = require('@aws-sdk/lib-dynamodb');
 const web3Service = require('../../shared/services/web3Service');
 const dynamoService = require('../../shared/services/dynamoService');
 const logger = require('../../shared/utils/logger');
@@ -24,19 +25,22 @@ async function healthCheck() {
 
     // Check DynamoDB connectivity
     try {
-      await dynamoService.docClient.send({ input: {} }); // Minimal check
+      await dynamoService.docClient.send(new ScanCommand({
+        TableName: dynamoService.tableName,
+        Limit: 1
+      }));
       checks.checks.dynamodb = 'healthy';
     } catch (error) {
       checks.checks.dynamodb = 'unhealthy';
       checks.status = 'degraded';
     }
 
-    // Check BSC RPC connectivity
+    // Check Arbitrum RPC connectivity
     try {
-      await web3Service.getCurrentBlock('bsc');
-      checks.checks.bscRpc = 'healthy';
+      await web3Service.getCurrentBlock('arbitrum');
+      checks.checks.arbitrumRpc = 'healthy';
     } catch (error) {
-      checks.checks.bscRpc = 'unhealthy';
+      checks.checks.arbitrumRpc = 'unhealthy';
       checks.status = 'degraded';
     }
 
@@ -73,8 +77,8 @@ async function healthCheck() {
  */
 async function getSystemInfo() {
   try {
-    const [bscBlock, ethBlock] = await Promise.all([
-      web3Service.getCurrentBlock('bsc').catch(() => null),
+    const [arbitrumBlock, ethBlock] = await Promise.all([
+      web3Service.getCurrentBlock('arbitrum').catch(() => null),
       web3Service.getCurrentBlock('ethereum').catch(() => null)
     ]);
 
@@ -84,10 +88,10 @@ async function getSystemInfo() {
         timestamp: new Date().toISOString(),
         version: process.env.VERSION || '1.0.0',
         chains: {
-          bsc: {
-            chainId: 97,
-            currentBlock: bscBlock,
-            status: bscBlock ? 'connected' : 'disconnected'
+          arbitrum: {
+            chainId: 421614,
+            currentBlock: arbitrumBlock,
+            status: arbitrumBlock ? 'connected' : 'disconnected'
           },
           ethereum: {
             chainId: 11155111,

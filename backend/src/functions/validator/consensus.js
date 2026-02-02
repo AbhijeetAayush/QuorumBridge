@@ -172,7 +172,7 @@ class ConsensusValidator {
       },
       'PENDING_UNLOCK': {
         action: 'UNLOCK',
-        targetChain: 'bsc',
+        targetChain: 'arbitrum',
         method: 'unlockTokens'
       }
     };

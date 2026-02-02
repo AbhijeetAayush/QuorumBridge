@@ -122,7 +122,7 @@ class EthereumPoller {
    * Get safe block range for polling
    * Prevents missed events and handles reorgs
    */
-  async getPollingRange(maxBlocksPerPoll = 500) {
+  async getPollingRange(maxBlocksPerPoll = 5) {
     try {
       const currentBlock = await web3Service.getCurrentBlock(this.chain);
       
