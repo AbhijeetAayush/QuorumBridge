@@ -64,24 +64,26 @@ export function TransactionStatus({ eventId: initialEventId }) {
       return;
     }
 
-    const loadFromStorageOrLatest = async () => {
+    const loadLatestPreferLatest = async () => {
       const storedEventId = window.localStorage.getItem('latestEventId');
       setIsAutoLoading(true);
       try {
-        if (storedEventId) {
-          setEventId(storedEventId);
-          const ok = await fetchStatus(storedEventId);
-          if (ok) {
+        // Always try the most recent pending event first
+        const latest = await fetchLatestEventId();
+        if (latest) {
+          setEventId(latest);
+          window.localStorage.setItem('latestEventId', latest);
+          const latestOk = await fetchStatus(latest);
+          if (latestOk) {
             setHasLoadedStoredId(true);
             return;
           }
         }
 
-        const latest = await fetchLatestEventId();
-        if (latest) {
-          setEventId(latest);
-          window.localStorage.setItem('latestEventId', latest);
-          await fetchStatus(latest);
+        // Fallback to stored eventId if latest not available or invalid
+        if (storedEventId) {
+          setEventId(storedEventId);
+          await fetchStatus(storedEventId);
         }
       } catch {
         // Ignore auto-load failures; user can still manually enter
@@ -91,7 +93,7 @@ export function TransactionStatus({ eventId: initialEventId }) {
       }
     };
 
-    loadFromStorageOrLatest();
+    loadLatestPreferLatest();
   }, [hasLoadedStoredId, initialEventId]);
 
   useEffect(() => {
